@@ -27,6 +27,28 @@ vim.api.nvim_set_hl(0, "NvimTreeNormal", { bg = "none" })
 vim.api.nvim_set_hl(0, "NvimTreeVertSplit", { bg = "none" })
 vim.api.nvim_set_hl(0, "NvimTreeEndOfBuffer", { bg = "none" })
 
+-- darker blink.cmp completion menu (adapts to any colorscheme)
+local function darken(hex, factor)
+  hex = hex:gsub("#", "")
+  local r = math.floor(tonumber(hex:sub(1, 2), 16) * factor)
+  local g = math.floor(tonumber(hex:sub(3, 4), 16) * factor)
+  local b = math.floor(tonumber(hex:sub(5, 6), 16) * factor)
+  return string.format("#%02x%02x%02x", r, g, b)
+end
+
+local function set_blink_bg()
+  local normal = vim.api.nvim_get_hl(0, { name = "Normal" })
+  if not normal.bg then return end
+  local bg = string.format("#%06x", normal.bg)
+  vim.api.nvim_set_hl(0, "BlinkCmpMenu", { bg = darken(bg, 0.4) })
+  vim.api.nvim_set_hl(0, "BlinkCmpMenuBorder", { bg = darken(bg, 0.4), fg = darken(bg, 1.5) })
+  vim.api.nvim_set_hl(0, "BlinkCmpDoc", { bg = darken(bg, 0.3) })
+  vim.api.nvim_set_hl(0, "BlinkCmpDocBorder", { bg = darken(bg, 0.3), fg = darken(bg, 1.5) })
+end
+
+set_blink_bg()
+vim.api.nvim_create_autocmd("ColorScheme", { callback = set_blink_bg })
+
 -- transparent notify background
 vim.api.nvim_set_hl(0, "NotifyINFOBody", { bg = "none" })
 vim.api.nvim_set_hl(0, "NotifyERRORBody", { bg = "none" })
