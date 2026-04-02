@@ -49,6 +49,20 @@ end
 set_blink_bg()
 vim.api.nvim_create_autocmd("ColorScheme", { callback = set_blink_bg })
 
+-- active tab: use theme accent so it stands out
+local function set_tabline_hl()
+  local normal = vim.api.nvim_get_hl(0, { name = "Normal" })
+  local statement = vim.api.nvim_get_hl(0, { name = "Statement" })
+  local accent_fg = statement.fg and string.format("#%06x", statement.fg) or "#fe8019"
+  local normal_fg = normal.fg and string.format("#%06x", normal.fg) or "#ebdbb2"
+  vim.api.nvim_set_hl(0, "TabLineSel", { fg = accent_fg, bg = "none", bold = true })
+  vim.api.nvim_set_hl(0, "TabLine", { fg = "#928374", bg = "none" })
+  vim.api.nvim_set_hl(0, "TabLineFill", { bg = "none" })
+end
+
+set_tabline_hl()
+vim.api.nvim_create_autocmd("ColorScheme", { callback = set_tabline_hl })
+
 -- transparent notify background
 vim.api.nvim_set_hl(0, "NotifyINFOBody", { bg = "none" })
 vim.api.nvim_set_hl(0, "NotifyERRORBody", { bg = "none" })
