@@ -3,3 +3,38 @@ vim.opt.shiftwidth = 4
 vim.opt.tabstop = 4
 vim.opt.expandtab = true
 
+-- Folding: treesitter folds are set up per-buffer in lua/plugins/treesitter.lua.
+-- Start with everything unfolded instead of collapsing the whole file on open.
+vim.opt.foldlevelstart = 99
+
+-- Line numbers: hybrid. The cursor line shows its absolute number, every other
+-- line shows its distance from the cursor -- so 8j / d5k are countable off the
+-- gutter without arithmetic.
+vim.opt.number = true
+vim.opt.relativenumber = true
+
+-- ...but relative numbers are noise when you're not navigating. Drop back to
+-- plain absolute numbers in insert mode and in windows that don't have focus,
+-- where the distances refer to a cursor you aren't moving.
+local numbers = vim.api.nvim_create_augroup("halsten_numbers", { clear = true })
+
+vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained", "InsertLeave", "WinEnter" }, {
+  group = numbers,
+  callback = function()
+    -- `number` is false in neo-tree, telescope, dap-ui and friends; leave those
+    -- windows to manage their own gutter.
+    if vim.wo.number and vim.api.nvim_get_mode().mode ~= "i" then
+      vim.wo.relativenumber = true
+    end
+  end,
+})
+
+vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost", "InsertEnter", "WinLeave" }, {
+  group = numbers,
+  callback = function()
+    if vim.wo.number then
+      vim.wo.relativenumber = false
+    end
+  end,
+})
+
