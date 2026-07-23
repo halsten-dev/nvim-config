@@ -13,6 +13,16 @@ local map = function(mode, lhs, rhs, desc)
   vim.keymap.set(mode, lhs, rhs, { desc = desc })
 end
 
+-- Half-page scroll, recentering so the cursor stays mid-screen.
+map("n", "<C-d>", "<C-d>zz", "Half page down (centered)")
+map("n", "<C-u>", "<C-u>zz", "Half page up (centered)")
+
+-- Window navigation, replacing the <C-w>h/j/k/l prefix.
+map("n", "<C-h>", "<C-w>h", "Go to left window")
+map("n", "<C-j>", "<C-w>j", "Go to lower window")
+map("n", "<C-k>", "<C-w>k", "Go to upper window")
+map("n", "<C-l>", "<C-w>l", "Go to right window")
+
 -- Netrw
 map("n", "<leader>pv", vim.cmd.Ex, "Explorer (netrw)")
 
@@ -24,18 +34,32 @@ map("n", "<leader>F", function() require("telescope.builtin").git_files() end, "
 map("n", "<leader>/", function() require("telescope.builtin").live_grep() end, "Telescope live grep")
 map("n", "<leader>b", function() require("telescope.builtin").buffers() end, "Telescope buffers")
 
--- Diagnostics. <leader>ad is just the current line; <leader>aD lists every
--- diagnostic Neovim knows about, fuzzy-searchable with a preview.
+-- <leader>a -- actions and diagnostics.
+-- <leader>ad is just the current line; <leader>aD lists every diagnostic
+-- Neovim knows about, fuzzy-searchable with a preview.
 map("n", "<leader>ad", vim.diagnostic.open_float, "Line diagnostics")
 map("n", "<leader>aD", function() require("telescope.builtin").diagnostics() end, "All diagnostics")
 
 -- LSP. Buffer-local: called from lua/halsten/lsp.lua on LspAttach.
--- Neovim already ships grn (rename), gra (code action), grr (references),
--- gri (implementation), grt (type definition), gO (symbols) and K (hover).
+-- The <leader>a maps below duplicate Neovim's built-in grn (rename) and gra
+-- (code action) on purpose, so everything lives under one discoverable prefix.
+-- Also built in and left alone: grr (references), gri (implementation),
+-- grt (type definition), gO (symbols), K (hover).
 function M.on_lsp_attach(client, bufnr)
   local bmap = function(lhs, rhs, desc)
     vim.keymap.set("n", lhs, rhs, { buffer = bufnr, desc = desc })
   end
+
+  bmap("<leader>ar", vim.lsp.buf.rename, "Rename symbol")
+  bmap("<leader>ac", vim.lsp.buf.code_action, "Code action")
+
+  -- Same action save-on-write runs; this is for when you want it mid-edit.
+  bmap("<leader>ao", function()
+    vim.lsp.buf.code_action({
+      context = { only = { "source.organizeImports" }, diagnostics = {} },
+      apply = true,
+    })
+  end, "Organize imports")
 
   bmap("gd", vim.lsp.buf.definition, "Goto definition")
   bmap("gD", vim.lsp.buf.declaration, "Goto declaration")
