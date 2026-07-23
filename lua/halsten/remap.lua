@@ -14,8 +14,24 @@ local map = function(mode, lhs, rhs, desc)
 end
 
 -- Half-page scroll, recentering so the cursor stays mid-screen.
-map("n", "<C-d>", "<C-d>zz", "Half page down (centered)")
-map("n", "<C-u>", "<C-u>zz", "Half page up (centered)")
+--
+-- Near the top or bottom of a buffer there's nothing to scroll past, so `zz`
+-- can't centre the cursor -- it just drags the view back where it started,
+-- which reads as a stutter. Only centre when the cursor is far enough from
+-- both edges that centring won't undo the scroll.
+local function scroll(key)
+  return function()
+    vim.cmd("normal! " .. vim.api.nvim_replace_termcodes(key, true, false, true))
+    local half = math.floor(vim.fn.winheight(0) / 2)
+    local line = vim.fn.line(".")
+    if line > half and line < vim.fn.line("$") - half then
+      vim.cmd("normal! zz")
+    end
+  end
+end
+
+map("n", "<C-d>", scroll("<C-d>"), "Half page down (centered)")
+map("n", "<C-u>", scroll("<C-u>"), "Half page up (centered)")
 
 -- Window navigation, replacing the <C-w>h/j/k/l prefix.
 map("n", "<C-h>", "<C-w>h", "Go to left window")
