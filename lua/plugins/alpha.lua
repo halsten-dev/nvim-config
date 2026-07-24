@@ -44,6 +44,8 @@ return {
     dashboard.opts.layout = {
       { type = "padding", val = 8 },
       dashboard.section.header,
+      { type = "padding", val = 1 },
+      { type = "text", val = "Happy coding session !", opts = { position = "center", hl = "Comment" } },
       { type = "padding", val = 2 },
       dashboard.section.buttons,
       { type = "padding", val = 1 },
