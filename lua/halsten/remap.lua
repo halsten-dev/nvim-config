@@ -90,6 +90,7 @@ function M.on_lsp_attach(client, bufnr)
 
   bmap("<leader>ar", vim.lsp.buf.rename, "Rename symbol")
   bmap("<leader>ac", vim.lsp.buf.code_action, "Code action")
+  bmap("<leader>af", function() vim.lsp.buf.format({ async = true }) end, "Format file")
 
   -- Same action save-on-write runs; this is for when you want it mid-edit.
   bmap("<leader>ao", function()

@@ -2,6 +2,11 @@
 -- the top-level `lsp/` directory; this file only decides which ones run and
 -- what happens once one attaches.
 
+-- Mason-installed binaries (lua-language-server, etc.) live here but aren't on
+-- the login shell's PATH. Prepend once so bare `cmd = { "name" }` in the server
+-- defs resolves them, same as a system-wide install.
+vim.env.PATH = vim.fn.stdpath("data") .. "/mason/bin:" .. vim.env.PATH
+
 -- Let blink.cmp advertise its completion capabilities to every server.
 local ok, blink = pcall(require, "blink.cmp")
 if ok then
@@ -9,6 +14,9 @@ if ok then
 end
 
 vim.lsp.enable("gopls")
+vim.lsp.enable("lua_ls")
+vim.lsp.enable("bashls")
+vim.lsp.enable("marksman")
 
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("halsten_lsp_attach", { clear = true }),
