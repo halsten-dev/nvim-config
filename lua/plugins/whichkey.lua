@@ -11,6 +11,7 @@ return {
       { "<leader>t", group = "toggle" },
       { "<leader>s", group = "search" },
       { "<leader>p", group = "project" },
+      { "t", group = "tabs/buffers" },
       { "g", group = "goto" },
       { "gr", group = "lsp" },
     },

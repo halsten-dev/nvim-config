@@ -1,3 +1,17 @@
+-- True colour, required by bufferline and gruvbox for correct highlights.
+vim.opt.termguicolors = true
+
+-- Hide the command line when idle; it reappears only while typing a `:` command
+-- or showing a message. Frees the very bottom row under the statusline.
+vim.opt.cmdheight = 0
+
+-- Use the system clipboard (+ register) as the default for yank/delete/paste.
+vim.opt.clipboard = "unnamedplus"
+
+-- Rounded borders on every floating window (hover, signature, diagnostics,
+-- completion docs, ...). Global default since nvim 0.11.
+vim.opt.winborder = "rounded"
+
 -- Indentation
 vim.opt.shiftwidth = 4
 vim.opt.tabstop = 4

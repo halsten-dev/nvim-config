@@ -13,31 +13,35 @@ local map = function(mode, lhs, rhs, desc)
   vim.keymap.set(mode, lhs, rhs, { desc = desc })
 end
 
--- Half-page scroll, recentering so the cursor stays mid-screen.
---
--- Near the top or bottom of a buffer there's nothing to scroll past, so `zz`
--- can't centre the cursor -- it just drags the view back where it started,
--- which reads as a stutter. Only centre when the cursor is far enough from
--- both edges that centring won't undo the scroll.
-local function scroll(key)
+-- Half-page scroll, animated by neoscroll, then recenter the cursor. neoscroll
+-- keeps the cursor at its screen row, so a zz once the tween ends restores the
+-- old mid-screen behaviour. Steady-state it's a no-op (cursor already centred).
+local dur = 150
+local function scroll(fn)
   return function()
-    vim.cmd("normal! " .. vim.api.nvim_replace_termcodes(key, true, false, true))
-    local half = math.floor(vim.fn.winheight(0) / 2)
-    local line = vim.fn.line(".")
-    if line > half and line < vim.fn.line("$") - half then
-      vim.cmd("normal! zz")
-    end
+    require("neoscroll")[fn]({ duration = dur })
+    vim.defer_fn(function() vim.cmd("normal! zz") end, dur + 10)
   end
 end
 
-map("n", "<C-d>", scroll("<C-d>"), "Half page down (centered)")
-map("n", "<C-u>", scroll("<C-u>"), "Half page up (centered)")
+map("n", "<C-d>", scroll("ctrl_d"), "Half page down (animated, centered)")
+map("n", "<C-u>", scroll("ctrl_u"), "Half page up (animated, centered)")
 
 -- Window navigation, replacing the <C-w>h/j/k/l prefix.
 map("n", "<C-h>", "<C-w>h", "Go to left window")
 map("n", "<C-j>", "<C-w>j", "Go to lower window")
 map("n", "<C-k>", "<C-w>k", "Go to upper window")
 map("n", "<C-l>", "<C-w>l", "Go to right window")
+
+-- Resize the current window width.
+map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", "Shrink window width")
+map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", "Grow window width")
+
+-- Quit every window. Blocks if a buffer has unsaved changes; use :qa! to force.
+map("n", "<leader>qq", "<cmd>qall<cr>", "Quit all")
+
+-- Select the whole file.
+map("n", "<leader>sa", "ggVG", "Select all")
 
 -- Netrw
 map("n", "<leader>pv", vim.cmd.Ex, "Explorer (netrw)")
@@ -48,7 +52,25 @@ map("n", "<leader>pv", vim.cmd.Ex, "Explorer (netrw)")
 map("n", "<leader>f", function() require("telescope.builtin").find_files() end, "Telescope find files")
 map("n", "<leader>F", function() require("telescope.builtin").git_files() end, "Telescope find git files")
 map("n", "<leader>/", function() require("telescope.builtin").live_grep() end, "Telescope live grep")
-map("n", "<leader>b", function() require("telescope.builtin").buffers() end, "Telescope buffers")
+map("n", "tb", function() require("telescope.builtin").buffers() end, "Telescope buffers")
+
+-- <leader>s -- telescope pickers (the "search" group).
+map("n", "<leader>sh", function() require("telescope.builtin").help_tags() end, "Help tags")
+map("n", "<leader>sk", function() require("telescope.builtin").keymaps() end, "Keymaps")
+map("n", "<leader>sr", function() require("telescope.builtin").resume() end, "Resume last picker")
+map("n", "<leader>so", function() require("telescope.builtin").oldfiles() end, "Recent files")
+map("n", "<leader>sc", function() require("telescope.builtin").commands() end, "Commands")
+map("n", "<leader>sw", function() require("telescope.builtin").grep_string() end, "Grep word under cursor")
+map("n", "<leader>ss", function() require("telescope.builtin").lsp_document_symbols() end, "Document symbols")
+
+-- Buffer tabs (bufferline). Cycle through the open-buffer row.
+-- Tab (buffer) navigation under a `t` prefix. Trade-off: the built-in `t`
+-- till-char motion now waits timeoutlen before firing, since `t` is a prefix.
+map("n", "tl", "<cmd>BufferLineCycleNext<cr>", "Next buffer")
+map("n", "th", "<cmd>BufferLineCyclePrev<cr>", "Prev buffer")
+map("n", "tc", "<cmd>bdelete<cr>", "Close buffer")
+-- Pick mode: each tab shows a letter, press it to jump to that buffer.
+map("n", "tj", "<cmd>BufferLinePick<cr>", "Jump to buffer (pick)")
 
 -- <leader>a -- actions and diagnostics.
 -- <leader>ad is just the current line; <leader>aD lists every diagnostic
