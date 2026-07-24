@@ -11,7 +11,10 @@ return {
   cmd = { "ConformInfo" },
   opts = {
     formatters_by_ft = {
-      go = { "goimports", "gofumpt" }, -- imports first, then stricter gofmt
+      -- goimports = gofmt formatting + import management. gofumpt is dropped on
+      -- purpose: its non-configurable ruleset deletes the blank line between an
+      -- assignment and a following `if err != nil {`, and we want to keep it.
+      go = { "goimports" },
       lua = { "stylua" },
       sh = { "shfmt" },
       bash = { "shfmt" },

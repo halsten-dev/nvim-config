@@ -8,8 +8,14 @@ return {
   settings = {
     Lua = {
       runtime = { version = "LuaJIT" },
-      -- Silence the "undefined global `vim`" noise when editing this config.
-      diagnostics = { globals = { "vim" } },
+      diagnostics = {
+        -- Silence the "undefined global `vim`" noise when editing this config.
+        globals = { "vim" },
+        -- lazy.nvim is required under several names across the plugin ecosystem,
+        -- so lua_ls can't pick a canonical one and flags every `require("lazy")`
+        -- with "different-requires". Noise for a config, not a real problem.
+        disable = { "different-requires" },
+      },
       -- Let it resolve `require("...")` against the Neovim runtime and every
       -- plugin on the runtimepath, so gotos and completions reach into them.
       workspace = {

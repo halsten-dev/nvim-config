@@ -49,8 +49,16 @@ return {
           return
         end
 
-        -- Indentation (upstream marks this experimental)
-        vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+        -- Indentation. Treesitter's indent is upstream-experimental and, on the
+        -- `main` branch, parses asynchronously -- on a cold or lagging buffer it
+        -- computes from a stale tree and returns the parent line's indent, so a
+        -- new line after `{` lands under-indented. Neovim's native ftplugin
+        -- indent (Go, C, Python, Lua, ...) is synchronous and correct, and runs
+        -- on this same FileType event *before* us. So only reach for treesitter
+        -- indent when the filetype shipped no indentexpr of its own.
+        if vim.bo[ev.buf].indentexpr == "" then
+          vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+        end
 
         -- Folding
         vim.wo[0][0].foldmethod = "expr"

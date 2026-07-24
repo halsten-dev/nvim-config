@@ -7,6 +7,7 @@ return {
   opts = {
     spec = {
       { "<leader>a", group = "actions/diagnostics" },
+      { "<leader>b", group = "buffer" },
       { "<leader>d", group = "debug" },
       { "<leader>t", group = "toggle" },
       { "<leader>s", group = "search" },

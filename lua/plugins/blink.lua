@@ -7,23 +7,28 @@ return {
   opts = {
     -- <Tab> accepts the selected item and expands snippets, then jumps between
     -- placeholders once one is active, and falls through to a normal indent
-    -- when the menu is closed. <CR> is left alone -- it always inserts a
-    -- newline. <C-space> opens the menu, <C-n>/<C-p> cycle, <C-e> dismisses.
-    keymap = { preset = "super-tab" },
+    -- when the menu is closed. <CR> accepts only when an item is *manually*
+    -- selected (list.accept returns false otherwise) -- with no preselection
+    -- (see completion.list below) that means <CR> keeps inserting newlines
+    -- until you navigate the menu. <C-space> opens the menu, <C-n>/<C-p>
+    -- cycle, <C-e> dismisses.
+    keymap = {
+      preset = "super-tab",
+      ["<CR>"] = { "accept", "fallback" },
+    },
 
     appearance = { nerd_font_variant = "mono" },
 
     completion = {
       documentation = { auto_show = true, auto_show_delay_ms = 200 },
 
-      -- Upstream's recommended pairing for super-tab: don't preselect an item
-      -- while a snippet is active, so <Tab> inside a snippet moves to the next
-      -- placeholder instead of accepting whatever happened to be highlighted.
+      -- Never preselect an item: the menu opens with nothing highlighted, so
+      -- <CR> falls through to a newline until you pick an item with <Tab> or
+      -- <C-n>/<C-p>. <Tab> still accepts the first item via select_and_accept,
+      -- which selects before accepting regardless of preselection.
       list = {
         selection = {
-          preselect = function()
-            return not require("blink.cmp").snippet_active({ direction = 1 })
-          end,
+          preselect = false,
         },
       },
     },

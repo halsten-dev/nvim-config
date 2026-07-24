@@ -6,6 +6,26 @@ return {
     "rcarriga/nvim-notify", -- backend for notifications
   },
   opts = {
+    -- Drop the plugin-manager install/update chatter that stacks up in the
+    -- top-right on startup (mason, mason-tool-installer, lazy, nvim-treesitter).
+    -- Matched by notification title. `error = false` keeps genuine install
+    -- *failures* visible -- only routine INFO/WARN notices are skipped.
+    routes = {
+      {
+        filter = {
+          event = "notify",
+          error = false,
+          cond = function(msg)
+            local title = msg.opts and msg.opts.title
+            return title == "mason.nvim"
+              or title == "mason-tool-installer"
+              or title == "lazy.nvim"
+              or title == "nvim-treesitter"
+          end,
+        },
+        opts = { skip = true },
+      },
+    },
     lsp = {
       -- Render LSP hover / signature help through noice's markdown.
       override = {

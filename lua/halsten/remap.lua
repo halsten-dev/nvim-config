@@ -13,14 +13,34 @@ local map = function(mode, lhs, rhs, desc)
   vim.keymap.set(mode, lhs, rhs, { desc = desc })
 end
 
--- Half-page scroll, animated by neoscroll, then recenter the cursor. neoscroll
--- keeps the cursor at its screen row, so a zz once the tween ends restores the
--- old mid-screen behaviour. Steady-state it's a no-op (cursor already centred).
+-- Half-page scroll, animated by neoscroll, cursor kept centred. The obvious
+-- "scroll then `zz`" recentre bounces the window: from the top of a buffer
+-- neoscroll's ctrl_d drives the window a full half-page down, then zz yanks it
+-- straight back up to centre the cursor -- a visible down-then-up jump.
+--
+-- Instead, raise 'scrolloff' high enough to pin the cursor to the window centre
+-- *for the animation only*. neoscroll then scrolls the window by exactly the
+-- amount needed to keep the cursor centred, so it lands centred with a single
+-- monotonic tween -- no bounce. scrolloff is restored the instant the tween
+-- ends (neoscroll's post_hook, lua/plugins/neoscroll.lua), so j/k, search, etc.
+-- keep the normal scrolloff.
 local dur = 150
 local function scroll(fn)
   return function()
+    -- Capture the real scrolloff once. A repeat press mid-tween must not save
+    -- the already-raised value, or it would never get restored.
+    if vim.w.halsten_saved_scrolloff == nil then
+      vim.w.halsten_saved_scrolloff = vim.wo.scrolloff
+    end
+    vim.wo.scrolloff = 999
     require("neoscroll")[fn]({ duration = dur })
-    vim.defer_fn(function() vim.cmd("normal! zz") end, dur + 10)
+    -- If neoscroll had nothing to scroll (e.g. already at EOF) it returns
+    -- without ever starting an animation, so its post_hook won't fire. Restore
+    -- here so we don't get stuck in the raised-scrolloff (centred) state.
+    if not require("neoscroll.scroll").scrolling then
+      vim.wo.scrolloff = vim.w.halsten_saved_scrolloff
+      vim.w.halsten_saved_scrolloff = nil
+    end
   end
 end
 
@@ -71,6 +91,23 @@ map("n", "th", "<cmd>BufferLineCyclePrev<cr>", "Prev buffer")
 map("n", "tc", "<cmd>bdelete<cr>", "Close buffer")
 -- Pick mode: each tab shows a letter, press it to jump to that buffer.
 map("n", "tj", "<cmd>BufferLinePick<cr>", "Jump to buffer (pick)")
+
+-- Jump straight back to the last buffer you were in (Vim's alternate buffer,
+-- the `#` register / built-in <C-^>). Press again to toggle between the two.
+map("n", "<leader>bb", "<cmd>buffer #<cr>", "Previous (alternate) buffer")
+
+-- Accepting a function completion (gopls usePlaceholders) expands a snippet and
+-- leaves its parameter tabstops highlighted (SnippetTabstop -> Visual, the
+-- "selection" colour). <Esc> exits insert/select mode but doesn't end the
+-- snippet session, so that highlight lingers inside the (). End the session on
+-- <Esc> too. expr so we still fall through to a normal <Esc> afterwards; not
+-- via the `map` helper above, which doesn't take options.
+vim.keymap.set({ "i", "s" }, "<Esc>", function()
+  if vim.snippet.active() then
+    vim.snippet.stop()
+  end
+  return "<Esc>"
+end, { expr = true, desc = "Esc; also end an active snippet" })
 
 -- <leader>a -- actions and diagnostics.
 -- <leader>ad is just the current line; <leader>aD lists every diagnostic

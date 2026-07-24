@@ -17,6 +17,16 @@ vim.opt.shiftwidth = 4
 vim.opt.tabstop = 4
 vim.opt.expandtab = true
 
+-- No soft-wrap: a line longer than the window runs off the right edge and the
+-- view scrolls horizontally instead. Line breaks are yours to place -- nothing
+-- wraps or reflows on its own.
+vim.opt.wrap = false
+
+-- Keep 4 columns of context to the right (and left) of the cursor once the
+-- view scrolls sideways, so you're never typing at the very edge -- the
+-- horizontal counterpart of 'scrolloff'.
+vim.opt.sidescrolloff = 4
+
 -- Folding: treesitter folds are set up per-buffer in lua/plugins/treesitter.lua.
 -- Start with everything unfolded instead of collapsing the whole file on open.
 vim.opt.foldlevelstart = 99

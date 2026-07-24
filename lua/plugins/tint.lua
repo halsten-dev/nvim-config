@@ -6,7 +6,11 @@ return {
     tint = -45,
     saturation = 0.6,
     tint_background_colors = false,
-    highlight_ignore_patterns = { "WinSeparator", "Status.*", "TabLine.*" },
+    -- Leave indent-blankline's guides alone. Their fg is already a dim grey
+    -- (#504945); tint darkening it in the inactive window drives it to near
+    -- black, and it re-tints on every scroll/redraw. "[Ii]bl" covers both the
+    -- Ibl* groups and the @ibl.* extmark highlights.
+    highlight_ignore_patterns = { "WinSeparator", "Status.*", "TabLine.*", "[Ii]bl" },
     window_ignore_function = function(winid)
       local bufid = vim.api.nvim_win_get_buf(winid)
       local ft = vim.bo[bufid].filetype
