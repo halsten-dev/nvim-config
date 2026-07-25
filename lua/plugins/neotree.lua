@@ -11,6 +11,13 @@ return {
 		    desc = "Explorer",
 	    },
     },
+    opts = {
+      window = {
+        mappings = {
+          ["t"] = "none",
+        },
+      },
+    },
     branch = "v3.x",
     dependencies = {
       "nvim-lua/plenary.nvim",

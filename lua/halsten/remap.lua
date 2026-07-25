@@ -88,9 +88,55 @@ map("n", "<leader>ss", function() require("telescope.builtin").lsp_document_symb
 -- till-char motion now waits timeoutlen before firing, since `t` is a prefix.
 map("n", "tl", "<cmd>BufferLineCycleNext<cr>", "Next buffer")
 map("n", "th", "<cmd>BufferLineCyclePrev<cr>", "Prev buffer")
-map("n", "tc", "<cmd>bdelete<cr>", "Close buffer")
+-- `:bdelete` also closes every window showing the buffer, so deleting the last
+-- buffer in a split collapses the split. Point each of those windows at another
+-- buffer first (the alternate one if it is still listed, else the next listed
+-- one, else a fresh empty buffer), then delete -- the layout survives.
+local function close_buffer()
+  local buf = vim.api.nvim_get_current_buf()
+
+  if vim.bo[buf].modified then
+    vim.notify("Buffer has unsaved changes", vim.log.levels.WARN)
+    return
+  end
+
+  local listed = function(b)
+    return b ~= buf and vim.api.nvim_buf_is_valid(b) and vim.bo[b].buflisted
+  end
+
+  local alt = vim.fn.bufnr("#")
+  local replacement = listed(alt) and alt or nil
+  if not replacement then
+    for _, b in ipairs(vim.api.nvim_list_bufs()) do
+      if listed(b) then
+        replacement = b
+        break
+      end
+    end
+  end
+
+  for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+    if replacement then
+      vim.api.nvim_win_set_buf(win, replacement)
+    else
+      vim.api.nvim_win_call(win, function()
+        vim.cmd("enew")
+      end)
+    end
+  end
+
+  if vim.api.nvim_buf_is_valid(buf) then
+    vim.cmd("bdelete " .. buf)
+  end
+end
+
+map("n", "tc", close_buffer, "Close buffer")
 -- Pick mode: each tab shows a letter, press it to jump to that buffer.
 map("n", "tj", "<cmd>BufferLinePick<cr>", "Jump to buffer (pick)")
+-- Vertical split holding the same buffer, cursor lands in the new window.
+-- `rightbelow` puts it to the right regardless of 'splitright', which is off
+-- here, so a plain `:vsplit` would open on the left.
+map("n", "ts", "<cmd>rightbelow vsplit<cr>", "Vertical split (focus new)")
 
 -- Jump straight back to the last buffer you were in (Vim's alternate buffer,
 -- the `#` register / built-in <C-^>). Press again to toggle between the two.
