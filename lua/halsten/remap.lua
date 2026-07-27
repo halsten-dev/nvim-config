@@ -57,6 +57,22 @@ map("n", "<C-l>", "<C-w>l", "Go to right window")
 map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", "Shrink window width")
 map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", "Grow window width")
 
+-- Pin the current window's width. 'winfixwidth' makes a window refuse
+-- *automatic* resizing -- opening or closing a split, the equalise that Vim
+-- does on any layout change -- so the cost lands on the unpinned windows
+-- instead. <C-Left>/<C-Right> above still work; those are explicit resizes.
+-- The same mechanism is applied temporarily around the explorer toggle in
+-- lua/plugins/neotree.lua; this is the manual, sticky version.
+map("n", "<leader>tw", function()
+  local win = vim.api.nvim_get_current_win()
+  local pinned = not vim.wo[win].winfixwidth
+  vim.wo[win].winfixwidth = pinned
+  vim.notify(
+    ("Window width %s (%d cols)"):format(pinned and "pinned" or "unpinned", vim.api.nvim_win_get_width(win)),
+    vim.log.levels.INFO
+  )
+end, "Toggle window width lock")
+
 -- Quit every window. Blocks if a buffer has unsaved changes; use :qa! to force.
 map("n", "<leader>qq", "<cmd>qall<cr>", "Quit all")
 
@@ -137,6 +153,48 @@ map("n", "tj", "<cmd>BufferLinePick<cr>", "Jump to buffer (pick)")
 -- `rightbelow` puts it to the right regardless of 'splitright', which is off
 -- here, so a plain `:vsplit` would open on the left.
 map("n", "ts", "<cmd>rightbelow vsplit<cr>", "Vertical split (focus new)")
+
+-- Wipe the session back to a bare dashboard: every buffer closed, every split
+-- and float collapsed to one window showing alpha. Refuses if anything is
+-- unsaved, same rule as `tc` above.
+--
+-- Order matters. Floats (noice, telescope leftovers) must go before `:only`,
+-- which errors if a float would be the last window standing. Alpha has to be
+-- drawn into the surviving window *before* the old buffers are deleted, or the
+-- delete leaves an empty [No Name] behind that alpha would then have to fight.
+local function go_home()
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.bo[b].buflisted and vim.bo[b].modified then
+      vim.notify("Buffer has unsaved changes: " .. vim.fn.bufname(b), vim.log.levels.WARN)
+      return
+    end
+  end
+
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_config(win).relative ~= "" then
+      pcall(vim.api.nvim_win_close, win, true)
+    end
+  end
+
+  vim.cmd("silent! tabonly")
+  vim.cmd("silent! only")
+
+  local old = vim.api.nvim_list_bufs()
+
+  -- alpha.start toggles *off* when called from inside an alpha buffer, so only
+  -- draw when we aren't already there.
+  if vim.bo.filetype ~= "alpha" then
+    require("alpha").start(false)
+  end
+
+  for _, b in ipairs(old) do
+    if vim.api.nvim_buf_is_valid(b) then
+      pcall(vim.api.nvim_buf_delete, b, { force = false })
+    end
+  end
+end
+
+map("n", "<leader>bh", go_home, "Close everything, back to dashboard")
 
 -- Jump straight back to the last buffer you were in (Vim's alternate buffer,
 -- the `#` register / built-in <C-^>). Press again to toggle between the two.
