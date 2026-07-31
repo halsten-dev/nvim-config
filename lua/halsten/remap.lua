@@ -13,39 +13,94 @@ local map = function(mode, lhs, rhs, desc)
   vim.keymap.set(mode, lhs, rhs, { desc = desc })
 end
 
--- Half-page scroll, animated by neoscroll, cursor kept centred. The obvious
--- "scroll then `zz`" recentre bounces the window: from the top of a buffer
--- neoscroll's ctrl_d drives the window a full half-page down, then zz yanks it
--- straight back up to centre the cursor -- a visible down-then-up jump.
+-- Half-page scroll, animated, cursor kept centred -- including the last
+-- screenful of the buffer, where the cursor would otherwise be left sitting on
+-- the bottom line.
 --
--- Instead, raise 'scrolloff' high enough to pin the cursor to the window centre
--- *for the animation only*. neoscroll then scrolls the window by exactly the
--- amount needed to keep the cursor centred, so it lands centred with a single
--- monotonic tween -- no bounce. scrolloff is restored the instant the tween
--- ends (neoscroll's post_hook, lua/plugins/neoscroll.lua), so j/k, search, etc.
--- keep the normal scrolloff.
+-- Both halves of the move are tweened by hand: the cursor line and the window's
+-- top line are computed up front and interpolated together, so the cursor is
+-- centred in every frame and lands centred. Doing it this way is what makes the
+-- end of the buffer work. Every scrolling primitive Vim offers (<C-e>, <C-d>,
+-- 'scrolloff') refuses to move the window once the last line has reached the
+-- bottom, so the cursor drifts down the screen as a scroll runs out of buffer.
+-- 'topline' set through winrestview() has no such limit -- exactly like `zz`,
+-- it will show the end of the buffer at the centre of the window with `~`
+-- filler below.
+--
+-- 'wrap' is off (lua/halsten/config.lua) so one buffer line is one screen line
+-- and this line arithmetic is the real geometry.
 local dur = 150
-local function scroll(fn)
-  return function()
-    -- Capture the real scrolloff once. A repeat press mid-tween must not save
-    -- the already-raised value, or it would never get restored.
-    if vim.w.halsten_saved_scrolloff == nil then
-      vim.w.halsten_saved_scrolloff = vim.wo.scrolloff
-    end
-    vim.wo.scrolloff = 999
-    require("neoscroll")[fn]({ duration = dur })
-    -- If neoscroll had nothing to scroll (e.g. already at EOF) it returns
-    -- without ever starting an animation, so its post_hook won't fire. Restore
-    -- here so we don't get stuck in the raised-scrolloff (centred) state.
-    if not require("neoscroll.scroll").scrolling then
-      vim.wo.scrolloff = vim.w.halsten_saved_scrolloff
-      vim.w.halsten_saved_scrolloff = nil
-    end
+local frame_ms = 16
+
+-- One running tween, remembered so a repeat press can pick up where it was
+-- headed rather than restarting from whatever is on screen mid-flight.
+local anim = {}
+
+local function stop_anim()
+  if anim.timer then
+    anim.timer:stop()
+    anim.timer:close()
+    anim.timer = nil
   end
 end
 
-map("n", "<C-d>", scroll("ctrl_d"), "Half page down (animated, centered)")
-map("n", "<C-u>", scroll("ctrl_u"), "Half page up (animated, centered)")
+local function round(x)
+  return math.floor(x + 0.5)
+end
+
+local function scroll(dir)
+  return function()
+    local win = vim.api.nvim_get_current_win()
+    local height = vim.api.nvim_win_get_height(win)
+    local above = math.floor((height - 1) / 2) -- lines above a centred cursor
+    local last = vim.api.nvim_buf_line_count(0)
+
+    -- Holding the key restarts the tween from the previous target, so the moves
+    -- add up instead of each press re-scrolling the half page it can still see.
+    local base = (anim.timer and anim.win == win) and anim.target or vim.fn.line(".")
+    stop_anim()
+
+    local view = vim.fn.winsaveview() -- carries col/curswant, so the column sticks
+    local from_line, from_top = view.lnum, view.topline
+    local to_line = math.min(math.max(base + dir * math.max(1, math.floor(height / 2)), 1), last)
+    -- Clamped at the top only: near the start of the buffer there is nothing to
+    -- show above line 1, so the cursor rides above centre there. Near the end
+    -- the window is allowed past the last line, which is the point.
+    local to_top = math.max(to_line - above, 1)
+    if to_line == from_line and to_top == from_top then
+      return
+    end
+
+    anim.win, anim.target = win, to_line
+    local elapsed = 0
+    anim.timer = vim.uv.new_timer()
+    anim.timer:start(
+      0,
+      frame_ms,
+      vim.schedule_wrap(function()
+        -- Give up if the window went away or lost focus mid-tween; winrestview
+        -- only ever applies to the current window.
+        if not vim.api.nvim_win_is_valid(win) or vim.api.nvim_get_current_win() ~= win then
+          stop_anim()
+          return
+        end
+        elapsed = elapsed + frame_ms
+        local t = math.min(elapsed / dur, 1)
+        local eased = (1 - math.cos(t * math.pi)) / 2 -- ease in-out, monotonic: no bounce
+        view.lnum = round(from_line + (to_line - from_line) * eased)
+        view.topline = round(from_top + (to_top - from_top) * eased)
+        vim.fn.winrestview(view)
+        if t >= 1 then
+          stop_anim()
+        end
+        vim.cmd("redraw")
+      end)
+    )
+  end
+end
+
+map("n", "<C-d>", scroll(1), "Half page down (animated, centered)")
+map("n", "<C-u>", scroll(-1), "Half page up (animated, centered)")
 
 -- Window navigation, replacing the <C-w>h/j/k/l prefix.
 map("n", "<C-h>", "<C-w>h", "Go to left window")
