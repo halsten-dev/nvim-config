@@ -102,6 +102,11 @@ end
 map("n", "<C-d>", scroll(1), "Half page down (animated, centered)")
 map("n", "<C-u>", scroll(-1), "Half page up (animated, centered)")
 
+-- Drop the search highlighting and noice's [1/12] counter. Neovim hangs this
+-- off <C-l> by default, but that key is window navigation below.
+-- The pattern itself survives, so n/N still work and light it back up.
+map("n", "<Esc>", "<cmd>nohlsearch<cr>", "Clear search highlight")
+
 -- Window navigation, replacing the <C-w>h/j/k/l prefix.
 map("n", "<C-h>", "<C-w>h", "Go to left window")
 map("n", "<C-j>", "<C-w>j", "Go to lower window")
@@ -279,6 +284,43 @@ map("n", "<leader>aD", function() require("telescope.builtin").diagnostics() end
 -- (code action) on purpose, so everything lives under one discoverable prefix.
 -- Also built in and left alone: grr (references), gri (implementation),
 -- grt (type definition), gO (symbols), K (hover).
+-- Jumping to a location is asynchronous -- the request goes out, the cursor
+-- moves whenever the server answers -- so a `zz` tacked onto the mapping would
+-- run before the jump and centre the wrong line. `on_list` is the only hook the
+-- built-in gives us, and taking it means owning the jump: the tagstack push
+-- (what <C-t> walks back down) and the quickfix fallback for multiple results
+-- are what vim.lsp.buf.definition would have done for us.
+local function goto_centered(fn)
+  return function()
+    local win = vim.api.nvim_get_current_win()
+    local from = vim.fn.getpos(".")
+    from[1] = vim.api.nvim_get_current_buf()
+    local tagname = vim.fn.expand("<cword>")
+
+    fn({
+      on_list = function(t)
+        if #t.items > 1 then
+          vim.fn.setqflist({}, " ", { title = t.title, items = t.items })
+          vim.cmd("botright copen")
+          return
+        end
+
+        local item = t.items[1]
+        local buf = item.bufnr or vim.fn.bufadd(item.filename)
+
+        vim.cmd("normal! m'")
+        vim.fn.settagstack(win, { items = { { tagname = tagname, from = from } } }, "t")
+
+        vim.bo[buf].buflisted = true
+        vim.api.nvim_win_set_buf(win, buf)
+        vim.api.nvim_win_set_cursor(win, { item.lnum, item.col - 1 })
+        -- zv opens folds over the target, zz then centres it.
+        vim.cmd("normal! zvzz")
+      end,
+    })
+  end
+end
+
 function M.on_lsp_attach(client, bufnr)
   local bmap = function(lhs, rhs, desc)
     vim.keymap.set("n", lhs, rhs, { buffer = bufnr, desc = desc })
@@ -298,9 +340,9 @@ function M.on_lsp_attach(client, bufnr)
     })
   end, "Organize imports")
 
-  bmap("gd", vim.lsp.buf.definition, "Goto definition")
-  bmap("gD", vim.lsp.buf.declaration, "Goto declaration")
-  bmap("gy", vim.lsp.buf.type_definition, "Goto type definition")
+  bmap("gd", goto_centered(vim.lsp.buf.definition), "Goto definition")
+  bmap("gD", goto_centered(vim.lsp.buf.declaration), "Goto declaration")
+  bmap("gy", goto_centered(vim.lsp.buf.type_definition), "Goto type definition")
 
   if client:supports_method("textDocument/inlayHint") then
     bmap("<leader>th", function()

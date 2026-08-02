@@ -30,7 +30,6 @@ return {
 
       -- Attaching to an already-running binary is how you debug a TUI: the app
       -- keeps its own terminal instead of fighting Neovim for this one.
-      -- First in the list so <leader>dc reaches it in one keypress.
       table.insert(dap.configurations.go, 1, {
         type = "go",
         name = "Attach to this project",
@@ -57,6 +56,21 @@ return {
           end
           return utils.pick_process(opts)
         end,
+      })
+
+      -- The `godbg` shell function now runs the binary under a headless delve
+      -- that blocks until a client connects, so breakpoints in init() or the
+      -- first lines of main() are reachable -- attaching to a live process is
+      -- always too late for those. nvim-dap-go sees mode = "remote" and dials
+      -- the existing server instead of spawning a delve of its own.
+      -- First in the list so <leader>dc reaches it in one keypress.
+      table.insert(dap.configurations.go, 1, {
+        type = "go",
+        name = "Connect to godbg",
+        request = "attach",
+        mode = "remote",
+        host = "127.0.0.1",
+        port = 2345,
       })
 
       vim.fn.sign_define("DapBreakpoint", { text = "B", texthl = "DiagnosticSignError" })
