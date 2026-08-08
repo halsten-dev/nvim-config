@@ -24,6 +24,7 @@ local ensure_installed = {
   "python",
   "query",
   "regex",
+  "templ",
   "toml",
   "tsx",
   "typescript",

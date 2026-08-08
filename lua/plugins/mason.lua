@@ -25,6 +25,8 @@ return {
         "goimports",
         "golangci-lint",
         "delve",
+        -- LSP *and* formatter for .templ -- the same binary does both.
+        "templ",
         -- lua
         "lua-language-server",
         "stylua",

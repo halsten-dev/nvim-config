@@ -14,6 +14,7 @@ if ok then
 end
 
 vim.lsp.enable("gopls")
+vim.lsp.enable("templ")
 vim.lsp.enable("lua_ls")
 vim.lsp.enable("bashls")
 vim.lsp.enable("marksman")

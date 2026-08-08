@@ -15,6 +15,9 @@ return {
       -- purpose: its non-configurable ruleset deletes the blank line between an
       -- assignment and a following `if err != nil {`, and we want to keep it.
       go = { "goimports" },
+      -- `templ fmt` is the only formatter for .templ; it handles both the
+      -- markup and the embedded Go.
+      templ = { "templ" },
       lua = { "stylua" },
       sh = { "shfmt" },
       bash = { "shfmt" },

@@ -47,6 +47,16 @@ vim.api.nvim_create_autocmd("LspProgress", {
   end,
 })
 
+-- Macro recording. `cmdheight = 0` swallows the built-in "recording @a"
+-- message, so the statusline is the only place it can show. RecordingLeave
+-- fires *before* `reg_recording()` clears, hence the scheduled refresh.
+vim.api.nvim_create_autocmd({ "RecordingEnter", "RecordingLeave" }, {
+  group = vim.api.nvim_create_augroup("halsten_macro_recording", { clear = true }),
+  callback = function()
+    vim.schedule(refresh)
+  end,
+})
+
 return {
   "nvim-lualine/lualine.nvim",
   dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -65,6 +75,16 @@ return {
       lualine_b = { "branch", "diff", "diagnostics" },
       lualine_c = { { "filename", path = 1 } }, -- path=1: show relative path
       lualine_x = {
+        -- Macro recording indicator, e.g. "󰑋 REC @a" while `qa` is active.
+        {
+          function()
+            return "󰑋 REC @" .. vim.fn.reg_recording()
+          end,
+          cond = function()
+            return vim.fn.reg_recording() ~= ""
+          end,
+          color = { fg = "#fb4934", gui = "bold" }, -- gruvbox bright red
+        },
         -- LSP progress spinner: shows while a server is indexing/loading.
         {
           function()
