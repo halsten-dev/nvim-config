@@ -279,6 +279,14 @@ end, { expr = true, desc = "Esc; also end an active snippet" })
 map("n", "<leader>ad", vim.diagnostic.open_float, "Line diagnostics")
 map("n", "<leader>aD", function() require("telescope.builtin").diagnostics() end, "All diagnostics")
 
+-- Ask Claude for code and drop it in at the cursor, asynchronously -- see
+-- lua/halsten/claude.lua. The two maps differ only in how much of the buffer
+-- goes along as context: the function around the cursor, or all of it. Reach
+-- for the second one when the answer needs to know about imports, types or
+-- helpers defined elsewhere in the file.
+map("n", "<leader>ai", function() require("halsten.claude").here("function") end, "Claude fill (function context)")
+map("n", "<leader>aI", function() require("halsten.claude").here("buffer") end, "Claude fill (whole buffer)")
+
 -- LSP. Buffer-local: called from lua/halsten/lsp.lua on LspAttach.
 -- The <leader>a maps below duplicate Neovim's built-in grn (rename) and gra
 -- (code action) on purpose, so everything lives under one discoverable prefix.
