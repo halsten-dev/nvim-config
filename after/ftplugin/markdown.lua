@@ -26,8 +26,9 @@ vim.opt_local.spelllang = "en_us"
 
 -- Formatting is markdownlint-cli2 (lua/plugins/conform.lua), which fixes rule
 -- violations but never reflows paragraphs. Leaving textwidth at 0 keeps it that
--- way: no hard line breaks get inserted as you type, so the file stays one
--- sentence-or-paragraph per line and diffs stay readable.
+-- way: no hard line breaks get inserted as you type, so a paragraph stays one
+-- logical line -- 'wrap' above renders it across several screen rows without
+-- touching the file, and diffs stay readable.
 vim.opt_local.textwidth = 0
 
 -- Consequence of 'wrap': a paragraph is one logical line, so a bare `j` jumps
