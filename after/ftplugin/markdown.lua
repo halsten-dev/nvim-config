@@ -23,9 +23,10 @@ vim.opt_local.spelllang = "en_us,fr"
 
 -- 'conceallevel' and 'concealcursor' are deliberately not set here.
 -- render-markdown.nvim owns them per-window: it flips conceallevel to 3 while a
--- buffer is rendered and restores your global value the moment it isn't (insert
--- mode, or :RenderMarkdown disable). Setting them locally would be overwritten
--- on the next render and misleading to read.
+-- buffer is rendered and restores your global value the moment it isn't
+-- (:RenderMarkdown disable, or leaving the buffer -- not insert mode, which
+-- renders too since render_modes = true). Setting them locally would be
+-- overwritten on the next render and misleading to read.
 
 -- Formatting is markdownlint-cli2 (lua/plugins/conform.lua), which fixes rule
 -- violations but never reflows paragraphs. Leaving textwidth at 0 keeps it that
