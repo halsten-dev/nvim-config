@@ -13,10 +13,13 @@ vim.opt_local.linebreak = true
 -- resetting to column 0.
 vim.opt_local.breakindent = true
 
--- Spell check. Add more languages with `spelllang = "en_us,fr"` -- `:set
--- spell` then pulls each missing dictionary from the nvim runtime on first use.
+-- Spell check. Notes are written in both languages, so both dictionaries are
+-- loaded: a word is accepted if it exists in *either*. `fr.utf-8.spl` lives in
+-- ~/.local/share/nvim/site/spell (downloaded once; nvim only ships `en`).
+-- Tradeoff of the union: an English typo that happens to be a valid French
+-- word passes unflagged. Worth it over retyping `:set spelllang` per paragraph.
 vim.opt_local.spell = true
-vim.opt_local.spelllang = "en_us"
+vim.opt_local.spelllang = "en_us,fr"
 
 -- 'conceallevel' and 'concealcursor' are deliberately not set here.
 -- render-markdown.nvim owns them per-window: it flips conceallevel to 3 while a
