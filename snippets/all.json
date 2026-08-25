@@ -1,0 +1,20 @@
+{
+  "File header": {
+    "prefix": "hhead",
+    "body": [
+      "// Goal:        $1",
+      "// Date:        $CURRENT_DATE.$CURRENT_MONTH.$CURRENT_YEAR",
+      "// Author:      Halsten",
+      "// Modifs:",
+      "$0"
+    ],
+    "description": "File header"
+  },
+  "Modification": {
+    "prefix": "hmod",
+    "body": [
+      "// $CURRENT_DATE.$CURRENT_MONTH.$CURRENT_YEAR - Halsen - $1"
+    ],
+    "description": "Timed modification"
+  }
+}
