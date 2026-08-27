@@ -9,6 +9,7 @@ return {
       { "<leader>a", group = "actions/diagnostics" },
       { "<leader>b", group = "buffer" },
       { "<leader>d", group = "debug" },
+      { "<leader>g", group = "git" },
       { "<leader>t", group = "toggle" },
       { "<leader>s", group = "search" },
       { "<leader>p", group = "project" },

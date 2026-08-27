@@ -287,6 +287,13 @@ map("n", "<leader>aD", function() require("telescope.builtin").diagnostics() end
 map("n", "<leader>ai", function() require("halsten.claude").here("function") end, "Claude fill (function context)")
 map("n", "<leader>aI", function() require("halsten.claude").here("buffer") end, "Claude fill (whole buffer)")
 
+-- <leader>g -- git. Lazygit in a float, see lua/halsten/lazygit.lua. The two
+-- maps differ only in which repo it starts on: the editor's cwd, or the repo
+-- the current file lives in -- they're the same thing until a session has
+-- buffers from more than one worktree.
+map("n", "<leader>gg", function() require("halsten.lazygit").open() end, "Lazygit (cwd)")
+map("n", "<leader>gf", function() require("halsten.lazygit").open_current_file() end, "Lazygit (current file's repo)")
+
 -- LSP. Buffer-local: called from lua/halsten/lsp.lua on LspAttach.
 -- The <leader>a maps below duplicate Neovim's built-in grn (rename) and gra
 -- (code action) on purpose, so everything lives under one discoverable prefix.
