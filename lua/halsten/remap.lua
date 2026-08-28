@@ -107,6 +107,14 @@ map("n", "<C-u>", scroll(-1), "Half page up (animated, centered)")
 -- The pattern itself survives, so n/N still work and light it back up.
 map("n", "<Esc>", "<cmd>nohlsearch<cr>", "Clear search highlight")
 
+-- Land every search hit centred, the way <C-d>/<C-u> above and the LSP jumps
+-- below do. Not tweened like the scrolls: a match can be anywhere in the file,
+-- so there is no distance to animate across, and holding `n` down to walk a
+-- long list of hits would spend the whole time waiting on the animation. `zz`
+-- centres, `zv` then opens a fold the match may be buried in.
+map("n", "n", "nzzzv", "Next search hit (centered)")
+map("n", "N", "Nzzzv", "Prev search hit (centered)")
+
 -- Window navigation, replacing the <C-w>h/j/k/l prefix.
 map("n", "<C-h>", "<C-w>h", "Go to left window")
 map("n", "<C-j>", "<C-w>j", "Go to lower window")
