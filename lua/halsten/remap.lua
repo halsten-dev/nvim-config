@@ -299,6 +299,57 @@ map("n", "<leader>gf", function() require("halsten.lazygit").open_current_file()
 -- (code action) on purpose, so everything lives under one discoverable prefix.
 -- Also built in and left alone: grr (references), gri (implementation),
 -- grt (type definition), gO (symbols), K (hover).
+-- templ compiles `foo.templ` into a sibling `foo_templ.go`, and gopls only ever
+-- knows about the generated file -- so `gd` on a component from a .go buffer
+-- lands in machine-written code. (`templ lsp` remaps positions itself, but only
+-- for requests originating inside a .templ buffer; it never sees this one.)
+-- templ emits no //line directives, so there's nothing to read back: instead
+-- take the identifier declared on the generated line and find the declaration
+-- that produced it in the source. Component names survive codegen verbatim, and
+-- raw Go blocks are copied across as-is, so a name match is exact. Returns nil
+-- when the source can't be resolved -- the generated file beats a wrong line.
+local function templ_source_location(filename, lnum)
+  local src = filename:gsub("_templ%.go$", ".templ")
+  if src == filename or vim.fn.filereadable(src) ~= 1 then
+    return nil
+  end
+
+  -- Generated files are large; read only as far as the line we were sent to.
+  local target = vim.fn.readfile(filename, "", lnum)[lnum]
+  if not target then
+    return nil
+  end
+
+  local name = target:match("^func%s+([%w_]+)")
+    or target:match("^func%s+%b()%s*([%w_]+)")
+    or target:match("^type%s+([%w_]+)")
+    or target:match("^var%s+([%w_]+)")
+    or target:match("^const%s+([%w_]+)")
+  if not name then
+    return nil
+  end
+
+  -- Go identifiers are [%w_] only, so `name` is safe to splice into a pattern.
+  local decls = {
+    "^%s*templ%s+" .. name .. "%s*%(",
+    "^%s*func%s+" .. name .. "%s*[%(%[]",
+    "^%s*func%s+%b()%s*" .. name .. "%s*[%(%[]",
+    "^%s*type%s+" .. name .. "[%s%[]",
+    "^%s*var%s+" .. name .. "[%s=]",
+    "^%s*const%s+" .. name .. "[%s=]",
+  }
+
+  for i, line in ipairs(vim.fn.readfile(src)) do
+    for _, decl in ipairs(decls) do
+      if line:match(decl) then
+        return { filename = src, lnum = i, col = line:find(name, 1, true), text = line }
+      end
+    end
+  end
+
+  return nil
+end
+
 -- Jumping to a location is asynchronous -- the request goes out, the cursor
 -- moves whenever the server answers -- so a `zz` tacked onto the mapping would
 -- run before the jump and centre the wrong line. `on_list` is the only hook the
@@ -314,6 +365,18 @@ local function goto_centered(fn)
 
     fn({
       on_list = function(t)
+        -- Redirect anything that landed in templ-generated Go back to the .templ.
+        for _, item in ipairs(t.items) do
+          local fname = item.filename or (item.bufnr and vim.api.nvim_buf_get_name(item.bufnr))
+          if fname and fname:match("_templ%.go$") then
+            local loc = templ_source_location(fname, item.lnum)
+            if loc then
+              item.bufnr = nil
+              item.filename, item.lnum, item.col, item.text = loc.filename, loc.lnum, loc.col, loc.text
+            end
+          end
+        end
+
         if #t.items > 1 then
           vim.fn.setqflist({}, " ", { title = t.title, items = t.items })
           vim.cmd("botright copen")
