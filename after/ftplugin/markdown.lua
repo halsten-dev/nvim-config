@@ -28,7 +28,7 @@ vim.opt_local.spelllang = "en_us,fr"
 -- renders too since render_modes = true). Setting them locally would be
 -- overwritten on the next render and misleading to read.
 
--- Formatting is markdownlint-cli2 (lua/plugins/conform.lua), which fixes rule
+-- Formatting is rumdl (lua/plugins/conform.lua), which fixes markdownlint rule
 -- violations but never reflows paragraphs. Leaving textwidth at 0 keeps it that
 -- way: no hard line breaks get inserted as you type, so a paragraph stays one
 -- logical line -- 'wrap' above renders it across several screen rows without

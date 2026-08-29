@@ -36,7 +36,10 @@ return {
         "shellcheck",
         -- markdown
         "marksman",
-        "markdownlint-cli2",
+        -- Rule-fixing markdown formatter (lua/plugins/conform.lua). Picked
+        -- over the equivalent markdownlint-cli2, which is an npm package and
+        -- so uninstallable without a node runtime.
+        "rumdl",
       },
     },
   },

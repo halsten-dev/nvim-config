@@ -21,7 +21,14 @@ return {
       lua = { "stylua" },
       sh = { "shfmt" },
       bash = { "shfmt" },
-      markdown = { "markdownlint-cli2" },
+      -- rumdl ships as a single prebuilt Rust binary, so mason can install it
+      -- with no language runtime present. It fixes markdownlint rule
+      -- violations -- list markers, blank lines around headings and fences,
+      -- trailing whitespace -- and never reflows a paragraph, which is the
+      -- behaviour after/ftplugin/markdown.lua leaves textwidth at 0 for.
+      -- markdownlint-cli2 does the same job but is npm-only, and there is no
+      -- node on this machine for mason to install it with.
+      markdown = { "rumdl" },
     },
     format_on_save = {
       timeout_ms = 3000,
