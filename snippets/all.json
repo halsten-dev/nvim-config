@@ -5,15 +5,15 @@
       "// Goal:        $1",
       "// Date:        $CURRENT_DATE.$CURRENT_MONTH.$CURRENT_YEAR",
       "// Author:      Halsten",
-      "// Modifs:",
+      "// Mods:",
       "$0"
     ],
     "description": "File header"
   },
   "Modification": {
-    "prefix": "hmod",
+    "prefix": "tmod",
     "body": [
-      "// $CURRENT_DATE.$CURRENT_MONTH.$CURRENT_YEAR - Halsen - $1"
+      "// $CURRENT_DATE.$CURRENT_MONTH.$CURRENT_YEAR - Halsten - $1"
     ],
     "description": "Timed modification"
   }
