@@ -14,7 +14,7 @@ Personal Neovim configuration: Go, templ, Rust, Lua, shell, SQL and markdown, bu
 | Runtime | Node + npm | optional — only `bash-language-server` needs it |
 | Search | `ripgrep`, `fd` | yes in practice — telescope and grug-far depend on them |
 | Git UI | `lazygit` | optional — `<leader>gg` / `<leader>gf` are dead without it |
-| AI | `claude` CLI | optional — `<leader>ai` / `<leader>aI` are dead without it |
+| AI | `codex` CLI | optional — `<leader>ai` / `<leader>aI` are dead without it |
 | Display | any Nerd Font | yes in practice — icons and separators break without one |
 
 ## Neovim
@@ -158,9 +158,17 @@ These are not managed by mason; they must be on `$PATH` yourself.
 | `rg` | telescope `live_grep`, `grep_string`; grug-far | grep pickers cannot run at all |
 | `fd` | telescope `find_files` | falls back to `rg --files`, then `find` — slower, and honours `.gitignore` differently |
 | `lazygit` | `<leader>gg`, `<leader>gf` — `lua/halsten/lazygit.lua` | reports "lazygit not found in $PATH" |
-| `claude` | `<leader>ai`, `<leader>aI` — `lua/halsten/claude.lua` | reports "claude: not on PATH" |
+| `codex` | `<leader>ai`, `<leader>aI` — `lua/halsten/codex.lua` | reports "codex: not on PATH" |
 
-`claude` is Anthropic's Claude Code CLI, installed separately; the config only requires that a binary called `claude` is reachable. On this machine it lives at `~/.local/bin/claude`.
+`codex` is OpenAI's Codex CLI, installed separately. Sign in with `codex login` and ensure `codex` is on `$PATH`. This integration targets CLI 0.153.4 or newer.
+
+- `<leader>ai` asks for code using the enclosing function as context (with a nearby-lines fallback).
+- `<leader>aI` sends the whole buffer as context.
+- Both run in the background, show an inline spinner, and insert the answer at a tracked cursor position with matching indentation, even after switching buffers or editing above it.
+- The completion notification shows tokens used (input + output), with input, output, and cached input counts. Cached tokens are already included in input. If the CLI omits usage, the notification shows `Tokens used: unavailable`.
+- `:CodexCancel` cancels all pending requests. `:ClaudeCancel` remains an alias.
+
+Requests time out after 120 seconds. They use [`codex exec`](https://developers.openai.com/codex/noninteractive) with ephemeral sessions and a read-only sandbox, from an empty temporary directory. Personal CLI configuration, project instructions, plugins, hooks, and the listed tool features are skipped for these code fills; authentication still uses your normal Codex login. The CLI default model is used; set `opts.model` in `lua/halsten/codex.lua` to select another model.
 
 ## Optional extras
 

@@ -287,13 +287,13 @@ end, { expr = true, desc = "Esc; also end an active snippet" })
 map("n", "<leader>ad", vim.diagnostic.open_float, "Line diagnostics")
 map("n", "<leader>aD", function() require("telescope.builtin").diagnostics() end, "All diagnostics")
 
--- Ask Claude for code and drop it in at the cursor, asynchronously -- see
--- lua/halsten/claude.lua. The two maps differ only in how much of the buffer
+-- Ask Codex for code and drop it in at the cursor, asynchronously -- see
+-- lua/halsten/codex.lua. The two maps differ only in how much of the buffer
 -- goes along as context: the function around the cursor, or all of it. Reach
 -- for the second one when the answer needs to know about imports, types or
 -- helpers defined elsewhere in the file.
-map("n", "<leader>ai", function() require("halsten.claude").here("function") end, "Claude fill (function context)")
-map("n", "<leader>aI", function() require("halsten.claude").here("buffer") end, "Claude fill (whole buffer)")
+map("n", "<leader>ai", function() require("halsten.codex").here("function") end, "Codex fill (function context)")
+map("n", "<leader>aI", function() require("halsten.codex").here("buffer") end, "Codex fill (whole buffer)")
 
 -- <leader>g -- git. Lazygit in a float, see lua/halsten/lazygit.lua. The two
 -- maps differ only in which repo it starts on: the editor's cwd, or the repo
