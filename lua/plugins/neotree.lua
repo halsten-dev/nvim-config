@@ -5,9 +5,6 @@
 -- rightmost window puts the whole cost on that one window and leaves the others
 -- alone. The pins are lifted right after, so manual <C-Left>/<C-Right> resizes
 -- keep working.
---
--- Same trick on the way out: closing gives the freed columns back to the
--- rightmost window instead of re-spreading them.
 local function keep_widths(fn)
   local wins = vim.tbl_filter(function(w)
     return vim.api.nvim_win_get_config(w).relative == ""
@@ -76,9 +73,20 @@ return {
       {
         "<leader>E",
         function()
-          keep_widths(function()
-            require("neo-tree.command").execute({ toggle = true, dir = vim.uv.cwd() })
-          end)
+          if tree_win() then
+            -- Closing: spread the freed columns over every remaining window
+            -- instead of handing them all to the rightmost one, so a vsplit
+            -- comes back to an even 50/50. 'horizontal' keeps heights alone,
+            -- and any genuinely pinned ('winfixwidth') sidebar is left as is.
+            require("neo-tree.command").execute({ action = "close" })
+            vim.schedule(function()
+              vim.cmd("horizontal wincmd =")
+            end)
+          else
+            keep_widths(function()
+              require("neo-tree.command").execute({ toggle = true, dir = vim.uv.cwd() })
+            end)
+          end
         end,
         desc = "Explorer (toggle)",
       },
