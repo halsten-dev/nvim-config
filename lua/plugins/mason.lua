@@ -40,6 +40,22 @@ return {
         -- over the equivalent markdownlint-cli2, which is an npm package and
         -- so uninstallable without a node runtime.
         "rumdl",
+        -- rust
+        --
+        -- rust-analyzer and rustfmt are NOT here: both are rustup components,
+        -- version-locked to the toolchain. lsp/rust_analyzer.lua explains what
+        -- breaks when they are not. codelldb is the piece rustup has no
+        -- equivalent for -- a DAP-speaking LLDB wrapper, shipped as a prebuilt
+        -- release archive, so it needs no runtime of its own.
+        "codelldb",
+        -- TOML LSP + formatter, single prebuilt binary. Here for Cargo.toml.
+        "taplo",
+        -- sql
+        --
+        -- Opinionated SQL formatter (lua/plugins/conform.lua). A pypi package,
+        -- which mason installs into a venv of its own -- the system python3 is
+        -- enough, nothing lands in it.
+        "sqlfmt",
       },
     },
   },

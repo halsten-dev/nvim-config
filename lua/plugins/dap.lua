@@ -73,6 +73,65 @@ return {
         port = 2345,
       })
 
+      -- Rust. There is no nvim-dap-rust writing the adapter and the launch
+      -- configurations the way nvim-dap-go does for Go, so both are spelled out
+      -- here.
+      --
+      -- codelldb over the plain `lldb-dap` binary because it ships the Rust
+      -- type visualisers: without them a String prints as a struct of pointer,
+      -- length and capacity, and a Vec<T> as raw memory. `sourceLanguages`
+      -- below is what turns them on.
+      dap.adapters.codelldb = {
+        type = "server",
+        port = "${port}",
+        executable = {
+          -- Mason installs codelldb here. halsten/lsp.lua's PATH prepend
+          -- happens at startup, but nvim-dap resolves this string itself and
+          -- does not go through a shell, so give it the full path.
+          command = vim.fn.stdpath("data") .. "/mason/bin/codelldb",
+          args = { "--port", "${port}" },
+        },
+      }
+
+      dap.configurations.rust = {
+        {
+          name = "Build and launch a binary",
+          type = "codelldb",
+          request = "launch",
+          cwd = "${workspaceFolder}",
+          stopOnEntry = false,
+          -- Enables codelldb's Rust data formatters (see above).
+          sourceLanguages = { "rust" },
+          args = {},
+
+          -- codelldb takes a path to an already-compiled binary and will
+          -- happily attach to a stale one, which is the most confusing failure
+          -- in debugging: breakpoints resolve onto the line numbers of the
+          -- source as it was at the last build, so you single-step through code
+          -- that is not what you are reading. Build first, every time.
+          --
+          -- Debug profile, not release: `cargo build --release` strips the
+          -- debug info and inlines aggressively, so breakpoints in small
+          -- functions are never hit.
+          program = function()
+            vim.notify("cargo build ...", vim.log.levels.INFO)
+            local out = vim.fn.system({ "cargo", "build" })
+            if vim.v.shell_error ~= 0 then
+              vim.notify(out, vim.log.levels.ERROR, { title = "cargo build failed" })
+              -- Returning the sentinel aborts the session cleanly rather than
+              -- launching against whatever binary is left in target/debug.
+              return require("dap").ABORT
+            end
+
+            -- A crate can produce several binaries (src/main.rs plus anything
+            -- under src/bin/), so which one still has to be chosen. Completion
+            -- is rooted at target/debug, and the directory also holds the .d
+            -- files and build/ -- the executables are the extensionless ones.
+            return vim.fn.input("Executable: ", vim.fn.getcwd() .. "/target/debug/", "file")
+          end,
+        },
+      }
+
       vim.fn.sign_define("DapBreakpoint", { text = "B", texthl = "DiagnosticSignError" })
       vim.fn.sign_define("DapStopped", { text = ">", texthl = "DiagnosticSignWarn", linehl = "Visual" })
     end,
