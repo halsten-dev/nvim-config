@@ -7,7 +7,7 @@ Personal Neovim configuration: Go, templ, Rust, Lua, shell, SQL and markdown, bu
 | Layer | What | Required? |
 | --- | --- | --- |
 | Editor | Neovim ≥ 0.11 | yes |
-| Build | `base-devel` (make + gcc), `git`, `curl`, `unzip`, `tar`, `gzip` | yes |
+| Build | `base-devel` (make + gcc), `git`, `curl`, `unzip`, `tar`, `gzip`, `tree-sitter-cli` | yes |
 | Runtime | Go toolchain | yes — mason builds the Go tooling with it |
 | Runtime | `rustup` toolchain | yes for Rust — supplies `rust-analyzer`, `rustfmt` and `clippy` |
 | Runtime | Python 3 | yes in practice — mason installs `sqlfmt` into a venv with it |
@@ -41,7 +41,7 @@ Everything below is available from the official repositories on Arch and Manjaro
 | `go` | the Go toolchain, and what mason uses to build most of the Go tooling |
 | `rustup` | the Rust toolchain manager — `rustc`, `cargo`, `rustfmt`, `clippy` and `rust-analyzer` all come from it. See [Rust](#rust) below; **do not** also install the `rust` package, they conflict |
 | `python` | mason builds a venv with it to install `sqlfmt`, the SQL formatter. Already present on any Manjaro install |
-| `tree-sitter-cli` | recommended for the nvim-treesitter `main` branch when a grammar has to be generated rather than downloaded |
+| `tree-sitter-cli` | required by the nvim-treesitter `main` branch to build parsers; without the `tree-sitter` binary startup fills `:messages` with `ENOENT ... (cmd): 'tree-sitter'` install errors |
 | `lazygit` | the `<leader>gg` / `<leader>gf` float in `lua/halsten/lazygit.lua` |
 | a Nerd Font | `ttf-hack-nerd` or similar — see below |
 
