@@ -33,6 +33,8 @@ vim.lsp.enable("gopls")
 vim.lsp.enable("templ")
 vim.lsp.enable("lua_ls")
 vim.lsp.enable("bashls")
+vim.lsp.enable("ts_ls")
+vim.lsp.enable("eslint")
 vim.lsp.enable("marksman")
 vim.lsp.enable("rust_analyzer")
 -- TOML, which in practice means Cargo.toml -- see lsp/taplo.lua.
@@ -51,4 +53,4 @@ vim.api.nvim_create_autocmd("LspAttach", {
 })
 
 -- Format on save is handled by conform.nvim (lua/plugins/conform.lua), which
--- runs goimports + gofumpt for Go and the right formatter per filetype.
+-- runs goimports for Go and the right formatter per filetype.

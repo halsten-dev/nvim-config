@@ -21,13 +21,26 @@ return {
       lua = { "stylua" },
       sh = { "shfmt" },
       bash = { "shfmt" },
+      -- Neovim calls JSX/TSX *react even for Solid; these are filetype names,
+      -- not a dependency on React. Conform prefers project-local Prettier,
+      -- falling back to Mason's copy, and respects the project's config.
+      javascript = { "prettier" },
+      javascriptreact = { "prettier" },
+      typescript = { "prettier" },
+      typescriptreact = { "prettier" },
+      css = { "prettier" },
+      scss = { "prettier" },
+      html = { "prettier" },
+      json = { "prettier" },
+      jsonc = { "prettier" },
+      yaml = { "prettier" },
       -- rumdl ships as a single prebuilt Rust binary, so mason can install it
       -- with no language runtime present. It fixes markdownlint rule
       -- violations -- list markers, blank lines around headings and fences,
       -- trailing whitespace -- and never reflows a paragraph, which is the
       -- behaviour after/ftplugin/markdown.lua leaves textwidth at 0 for.
-      -- markdownlint-cli2 does the same job but is npm-only, and there is no
-      -- node on this machine for mason to install it with.
+      -- Kept instead of markdownlint-cli2 so markdown formatting stays
+      -- independent of the Node runtime used by the web tooling.
       markdown = { "rumdl" },
       -- rustfmt is a rustup component, not a mason package (see
       -- lsp/rust_analyzer.lua for why the Rust tooling comes from rustup).

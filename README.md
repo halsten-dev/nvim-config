@@ -1,6 +1,6 @@
 # nvim
 
-Personal Neovim configuration: Go, templ, Rust, Lua, shell, SQL and markdown, built on Neovim's own LSP client. lazy.nvim manages plugins, mason manages the external tool binaries, and there is no distribution layer in between — every plugin spec in `lua/plugins/` and every server definition in `lsp/` is hand-written and commented with the reasoning behind it.
+Personal Neovim configuration: Go, templ, Rust, SolidJS / TypeScript / JavaScript, Lua, shell, SQL and markdown, built on Neovim's own LSP client. lazy.nvim manages plugins, mason manages the external tool binaries, and there is no distribution layer in between — every plugin spec in `lua/plugins/` and every server definition in `lsp/` is hand-written and commented with the reasoning behind it.
 
 ## Requirements at a glance
 
@@ -11,8 +11,9 @@ Personal Neovim configuration: Go, templ, Rust, Lua, shell, SQL and markdown, bu
 | Runtime | Go toolchain | yes — mason builds the Go tooling with it |
 | Runtime | `rustup` toolchain | yes for Rust — supplies `rust-analyzer`, `rustfmt` and `clippy` |
 | Runtime | Python 3 | yes in practice — mason installs `sqlfmt` into a venv with it |
-| Runtime | Node + npm | optional — only `bash-language-server` needs it |
+| Runtime | Node.js ≥ 22.22.2 + npm (prefer current LTS) | yes for SolidJS / TS / JS tooling and shell LSP |
 | Search | `ripgrep`, `fd` | yes in practice — telescope and grug-far depend on them |
+| Clipboard | `wl-clipboard` on Wayland; `xclip` on X11 | yes for system clipboard yank/paste |
 | Git UI | `lazygit` | optional — `<leader>gg` / `<leader>gf` are dead without it |
 | AI | `codex` CLI | optional — `<leader>ai` / `<leader>aI` are dead without it |
 | Display | any Nerd Font | yes in practice — icons and separators break without one |
@@ -38,9 +39,11 @@ Everything below is available from the official repositories on Arch and Manjaro
 | `curl`, `wget`, `unzip`, `tar`, `gzip` | mason downloads and unpacks release archives with these (usually present already) |
 | `ripgrep` | telescope `live_grep` / `grep_string` and the whole of grug-far |
 | `fd` | telescope's file finder prefers it; without it the picker falls back to `rg --files`, then to `find` |
+| `wl-clipboard` | `wl-copy` / `wl-paste`, Neovim's system clipboard provider on KDE Wayland; use `xclip` instead on X11 |
 | `go` | the Go toolchain, and what mason uses to build most of the Go tooling |
 | `rustup` | the Rust toolchain manager — `rustc`, `cargo`, `rustfmt`, `clippy` and `rust-analyzer` all come from it. See [Rust](#rust) below; **do not** also install the `rust` package, they conflict |
 | `python` | mason builds a venv with it to install `sqlfmt`, the SQL formatter. Already present on any Manjaro install |
+| `nodejs`, `npm` | runtime and package manager for TypeScript LSP, ESLint LSP, Prettier, `bash-language-server`, and SolidJS projects |
 | `tree-sitter-cli` | required by the nvim-treesitter `main` branch to build parsers; without the `tree-sitter` binary startup fills `:messages` with `ENOENT ... (cmd): 'tree-sitter'` install errors |
 | `lazygit` | the `<leader>gg` / `<leader>gf` float in `lua/halsten/lazygit.lua` |
 | a Nerd Font | `ttf-hack-nerd` or similar — see below |
@@ -49,12 +52,25 @@ Install the lot:
 
 ```sh
 sudo pacman -S --needed neovim git base-devel curl wget unzip \
-  ripgrep fd go rustup python tree-sitter-cli lazygit ttf-hack-nerd
+  ripgrep fd go rustup python nodejs npm tree-sitter-cli lazygit ttf-hack-nerd \
+  wl-clipboard
 ```
 
 `rustup` installs no toolchain of its own — see [Rust](#rust) for the two commands that follow.
 
 On Debian or Ubuntu the equivalents are `build-essential` for `base-devel` and `fd-find` for `fd` — note that the latter installs the binary as `fdfind`, so symlink it to `fd` somewhere on `$PATH` or telescope will not find it. Neovim's repository versions are frequently older than 0.11; prefer the official AppImage or a source build there.
+
+### System clipboard (KDE / Manjaro)
+
+`lua/halsten/config.lua` already sets `clipboard = "unnamedplus"`, so normal yank/delete/paste uses the system clipboard. Neovim still needs an external clipboard provider — KDE's clipboard manager alone is not enough.
+
+For a **Wayland** session (`echo $XDG_SESSION_TYPE`):
+
+```sh
+sudo pacman -S --needed wl-clipboard
+```
+
+This supplies `wl-copy` and `wl-paste`; Neovim detects them automatically. Restart Neovim after installing and run `:checkhealth vim.provider` to check clipboard detection. No extra plugin or Lua configuration is needed. On **X11**, install `xclip` instead.
 
 ### Fonts
 
@@ -100,13 +116,100 @@ Present on any Manjaro install, and used only indirectly: mason installs `sqlfmt
 
 ### Node
 
-**Node and npm** are optional and currently **not installed on this machine**. Exactly one declared tool needs them: `bash-language-server`. Until node is present, `vim.lsp.enable("bashls")` in `lua/halsten/lsp.lua` will keep failing quietly and shell buffers get no LSP — `shfmt` formatting and `shellcheck` are unaffected, since both are standalone binaries. To close that gap:
+**Node.js ≥ 22.22.2 and npm** are required for the current TypeScript language server (prefer the current Node LTS). Mason uses npm to install `typescript-language-server`, `eslint-lsp`, `prettier` and `bash-language-server`; Node runs them. Without it, TS/JS buffers have no LSP or Prettier, and shell buffers have no LSP — `shfmt` and `shellcheck` are standalone binaries and are unaffected.
 
 ```sh
-sudo pacman -S nodejs npm
+sudo pacman -S --needed nodejs npm
+node --version
+npm --version
 ```
 
 Nothing else in the config needs a Ruby, PHP or Java toolchain. blink.cmp's fuzzy matcher and the `rumdl` markdown formatter are themselves Rust programs, but both ship prebuilt binaries and never go through `cargo` — they worked fine before `rustup` was installed and do not depend on it now.
+
+### SolidJS / TypeScript / JavaScript
+
+The same setup handles `.tsx`, `.jsx`, `.ts` and `.js`:
+
+- **LSP:** `typescript-language-server` (`lsp/ts_ls.lua`) provides completion, auto-imports, hover, definitions, rename and type diagnostics through the existing blink/keymap setup. No separate Solid language server or React packages are needed.
+- **Formatting:** Prettier runs on save and with `<leader>af`. Conform prefers the project's `node_modules/.bin/prettier`, falling back to Mason's copy, and reads the project's Prettier configuration. CSS, SCSS, HTML, JSON/JSONC and YAML also use Prettier; existing language formatters are unchanged.
+- **Linting:** `eslint-lsp` (`lsp/eslint.lua`) supplies diagnostics and code actions using the project's ESLint installation. It only attaches when an `eslint.config.*` or `.eslintrc*` file exists. Solid's reactivity checks come from `eslint-plugin-solid`, not TypeScript. Fixes are explicit via `<leader>ac`, not automatic on save.
+- **Highlighting/folding:** Tree-sitter already includes `javascript` (also JSX), `typescript` and `tsx`; `css` is included too. Neovim calls JSX/TSX filetypes `javascriptreact` / `typescriptreact` even in Solid projects — do not rename them.
+
+Project dependencies belong in the project, **not** in this Neovim repository:
+
+| Dependency | Role |
+| --- | --- |
+| `solid-js` | Solid runtime and JSX types; supplied by a Solid starter |
+| `vite`, `vite-plugin-solid` | dev server and Solid JSX compilation for a Vite-based starter |
+| `typescript@6` | project-local compiler and types used by the LSP; see compatibility note below |
+| `prettier` | project-pinned formatting, shared by the editor and CLI |
+| `eslint@10`, `@eslint/js@10` | lint engine and recommended JavaScript rules; ESLint 10 requires flat config |
+| `typescript-eslint` | TypeScript parser and lint rules |
+| `eslint-plugin-solid` | Solid-specific JSX and reactivity rules |
+| `eslint-config-prettier` | disables lint rules that conflict with Prettier |
+| `globals` | browser globals for the ESLint config |
+
+For a new Vite-based Solid TypeScript app (skip scaffolding if you already have a project):
+
+```sh
+npm create vite@latest my-solid-app -- --template solid-ts
+cd my-solid-app
+npm install
+```
+
+Then, from the project directory, add the development tools:
+
+```sh
+npm install -D typescript@6 prettier eslint@10 @eslint/js@10 \
+  typescript-eslint eslint-plugin-solid eslint-config-prettier globals
+```
+
+**TypeScript compatibility:** use TypeScript 6 for this setup. TypeScript 7 removed `lib/tsserver.js`, which `typescript-language-server` needs, and the current `typescript-eslint` supports TypeScript `<6.1`. Mason also supplies TypeScript 6 as the server's fallback. The explicit version above keeps the project compiler compatible even if a starter defaults to a newer major.
+
+Keep the starter's TypeScript settings. In the config that covers your source files (`tsconfig.json` or `tsconfig.app.json`), these options make JSX use **Solid**, not React:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js"
+  }
+}
+```
+
+Merge those options rather than replacing the whole config. For a mixed JS/TS project, also set `allowJs: true`; add `checkJs: true` if you want TypeScript diagnostics in `.js`/`.jsx`. A JavaScript-only project can put these options in `jsconfig.json`.
+
+ESLint 10 requires flat config (`eslint.config.*`); `.eslintrc*` is no longer supported by ESLint 10. The LSP still detects those legacy files for older projects. Current `typescript-eslint`, `eslint-plugin-solid` and `eslint-config-prettier` releases support ESLint 10.
+
+If the starter has no ESLint config, create `eslint.config.mjs` at the project root (otherwise merge the Solid presets into its existing flat config):
+
+```js
+import { defineConfig } from "eslint/config";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import solid from "eslint-plugin-solid";
+import globals from "globals";
+import prettier from "eslint-config-prettier";
+
+export default defineConfig([
+  { ignores: ["dist/**", ".output/**", ".vinxi/**"] },
+  {
+    files: ["**/*.{js,jsx}"],
+    extends: [js.configs.recommended, solid.configs["flat/recommended"]],
+  },
+  {
+    files: ["**/*.{ts,tsx}"],
+    extends: [tseslint.configs.recommended, solid.configs["flat/typescript"]],
+  },
+  {
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    languageOptions: { globals: globals.browser },
+  },
+  prettier,
+]);
+```
+
+Prettier works without a config; add `.prettierrc.json` in the project if you want to choose style options. Commit the project lockfile so teammates and CI use the same tool versions. These npm packages are **not** installed by Mason — Mason only supplies editor-side binaries.
 
 ## Installation
 
@@ -141,6 +244,9 @@ Declared in `lua/plugins/mason.lua`, installed into `~/.local/share/nvim/mason/b
 | `bash-language-server` | shell LSP | **node + npm** |
 | `shfmt` | shell formatter | — |
 | `shellcheck` | shell linter | — |
+| `typescript-language-server` | TS/JS/TSX/JSX LSP, including SolidJS; bundles a fallback TypeScript compiler | **node + npm** |
+| `eslint-lsp` | ESLint diagnostics and code actions (`vscode-eslint-language-server`); uses project-local ESLint and rules | **node + npm**, project ESLint config/dependencies |
+| `prettier` | TS/JS/TSX/JSX, CSS/SCSS, HTML, JSON/JSONC and YAML formatter | **node + npm** |
 | `marksman` | markdown LSP: links, references, outline. Does no formatting | — |
 | `rumdl` | markdown formatter — fixes markdownlint rule violations and never reflows paragraphs, which is what `after/ftplugin/markdown.lua` leaves `textwidth` at 0 for |  |
 | `sqlfmt` | SQL formatter, wired into conform | **python3** (mason builds it a venv) |
@@ -212,11 +318,20 @@ rust-analyzer --version             # empty output means ~/.cargo/bin is not on 
 
 Neovim finds `rust-analyzer` regardless of that second one — `lua/halsten/lsp.lua` appends `~/.cargo/bin` itself — so check `:checkhealth vim.lsp` for the attached client if you want the editor's own answer.
 
-`:checkhealth` will always warn about the runtimes this config does not use — luarocks, ruby, gem, composer, php, julia. Those are safe to ignore. The one worth acting on is `node`/`npm`, and only if you want shell LSP.
+For SolidJS, after installing Node/npm, run `:MasonToolsInstall` and wait for `typescript-language-server`, `eslint-lsp` and `prettier` to finish, then restart Neovim. Open a project `.tsx` file:
+
+```vim
+:set filetype?                 " typescriptreact (javascriptreact for .jsx)
+:checkhealth vim.lsp            " ts_ls; also eslint when the project has a config
+:ConformInfo                   " prettier should be available
+```
+
+`gd` jumps to definitions, `K` shows hover, `<leader>ar` renames, `<leader>ao` organizes imports, and `<leader>ac` offers code actions / ESLint fixes. Save to format, or use `<leader>af`. From the project directory, `npx eslint src` checks linting and `npx tsc --noEmit -p tsconfig.app.json` checks types (use `tsconfig.json` instead if that is the source config).
+
+`:checkhealth` will always warn about the runtimes this config does not use — luarocks, ruby, gem, composer, php, julia. Those are safe to ignore. Act on missing `node`/`npm` for SolidJS / TS / JS tooling or shell LSP.
 
 ## Known gaps on this machine
 
-- **No node or npm**, so `bash-language-server` cannot be installed and `bashls` never attaches. Every other declared tool is reachable without it.
 - `gofumpt` and `golangci-lint` are installed but not wired into anything; conform formats Go with `goimports` alone, on purpose.
 - `sqlfmt` parses SQL rather than just shuffling whitespace, so it refuses a file whose dialect it cannot read — the error surfaces in `:ConformInfo` / `:messages` and the buffer is left untouched rather than mangled. Standard ANSI, Postgres and dbt-flavoured SQL are fine; exotic vendor DDL may not be.
 - Nothing provides SQL completion or diagnostics — `sqlfmt` is a formatter only, and no SQL LSP is enabled. `sqls` would need a live database connection configured per project, which is not worth it here.

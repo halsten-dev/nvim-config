@@ -34,6 +34,11 @@ return {
         "bash-language-server",
         "shfmt",
         "shellcheck",
+        -- JavaScript / TypeScript / SolidJS (all require node + npm).
+        -- eslint-lsp is the server; eslint and Solid's rules live in the project.
+        "typescript-language-server",
+        "eslint-lsp",
+        "prettier",
         -- markdown
         "marksman",
         -- Rule-fixing markdown formatter (lua/plugins/conform.lua). Picked
