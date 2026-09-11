@@ -12,9 +12,12 @@
   },
   "Modification": {
     "prefix": "tmod",
-    "body": [
-      "// $CURRENT_DATE.$CURRENT_MONTH.$CURRENT_YEAR - Halsten - $1"
-    ],
+    "body": ["// $CURRENT_DATE.$CURRENT_MONTH.$CURRENT_YEAR - Halsten - $1"],
+    "description": "Timed modification"
+  },
+  "SQL Modification": {
+    "prefix": "sqlmod",
+    "body": ["-- $CURRENT_DATE.$CURRENT_MONTH.$CURRENT_YEAR - Halsten - $1"],
     "description": "Timed modification"
   }
 }
