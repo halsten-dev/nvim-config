@@ -32,6 +32,20 @@ return {
     local telescope = require("telescope")
 
     telescope.setup({
+      defaults = {
+        -- Include ignored files and dotfiles in text searches, but not Git internals.
+        vimgrep_arguments = vim.list_extend(
+          vim.deepcopy(require("telescope.config").values.vimgrep_arguments),
+          { "--hidden", "--no-ignore", "--glob", "!.git" }
+        ),
+      },
+      pickers = {
+        find_files = {
+          hidden = true,
+          no_ignore = true,
+          file_ignore_patterns = { "^%.git/", "/%.git/" },
+        },
+      },
       extensions = {
         fzf = {
           fuzzy = true,
