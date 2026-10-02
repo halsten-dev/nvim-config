@@ -49,16 +49,12 @@ return {
       -- conform reads the `edition` out of Cargo.toml and passes it through, so
       -- a 2015 or 2024 crate is not formatted as 2021.
       rust = { "rustfmt" },
-      -- sqlfmt (shandy-sqlfmt) is to SQL what gofmt is to Go: one style, no
-      -- options, reads stdin. Picked over sqlfluff, which conform will only run
-      -- when the project has a .sqlfluff or pyproject.toml at its root
-      -- (require_cwd), so a scratch query in a throwaway buffer would silently
-      -- not format -- and over sql-formatter, which is npm-only.
-      --
-      -- The cost of a real parser instead of a whitespace pass: sqlfmt refuses
-      -- a file it cannot parse rather than mangling it, so some vendor-specific
-      -- DDL comes back as a conform error and the buffer is left untouched.
-      sql = { "sqlfmt" },
+      -- sqlfmt forces semicolons onto their own line with no opt-out.
+      -- sql-formatter keeps them attached by default (newlineBeforeSemicolon
+      -- = false), works on stdin without a project config, and allows dialect
+      -- and style overrides via .sql-formatter.json in the working directory
+      -- or a parent. Uses the Node runtime already needed by the web tooling.
+      sql = { "sql_formatter" },
       -- Same binary as the TOML LSP in lsp/taplo.lua.
       toml = { "taplo" },
     },

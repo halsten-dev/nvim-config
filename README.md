@@ -10,8 +10,7 @@ Personal Neovim configuration: Go, templ, Rust, SolidJS / TypeScript / JavaScrip
 | Build | `base-devel` (make + gcc), `git`, `curl`, `unzip`, `tar`, `gzip`, `tree-sitter-cli` | yes |
 | Runtime | Go toolchain | yes — mason builds the Go tooling with it |
 | Runtime | `rustup` toolchain | yes for Rust — supplies `rust-analyzer`, `rustfmt` and `clippy` |
-| Runtime | Python 3 | yes in practice — mason installs `sqlfmt` into a venv with it |
-| Runtime | Node.js ≥ 22.22.2 + npm (prefer current LTS) | yes for SolidJS / TS / JS tooling and shell LSP |
+| Runtime | Node.js ≥ 22.22.2 + npm (prefer current LTS) | yes for SolidJS / TS / JS tooling, shell LSP and SQL formatting |
 | Search | `ripgrep`, `fd` | yes in practice — telescope and grug-far depend on them |
 | Clipboard | `wl-clipboard` on Wayland; `xclip` on X11 | yes for system clipboard yank/paste |
 | Git UI | `lazygit` | optional — `<leader>gg` / `<leader>gf` are dead without it |
@@ -42,8 +41,7 @@ Everything below is available from the official repositories on Arch and Manjaro
 | `wl-clipboard` | `wl-copy` / `wl-paste`, Neovim's system clipboard provider on KDE Wayland; use `xclip` instead on X11 |
 | `go` | the Go toolchain, and what mason uses to build most of the Go tooling |
 | `rustup` | the Rust toolchain manager — `rustc`, `cargo`, `rustfmt`, `clippy` and `rust-analyzer` all come from it. See [Rust](#rust) below; **do not** also install the `rust` package, they conflict |
-| `python` | mason builds a venv with it to install `sqlfmt`, the SQL formatter. Already present on any Manjaro install |
-| `nodejs`, `npm` | runtime and package manager for TypeScript LSP, ESLint LSP, Prettier, `bash-language-server`, and SolidJS projects |
+| `nodejs`, `npm` | runtime and package manager for TypeScript LSP, ESLint LSP, Prettier, `bash-language-server`, `sql-formatter`, and SolidJS projects |
 | `tree-sitter-cli` | required by the nvim-treesitter `main` branch to build parsers; without the `tree-sitter` binary startup fills `:messages` with `ENOENT ... (cmd): 'tree-sitter'` install errors |
 | `lazygit` | the `<leader>gg` / `<leader>gf` float in `lua/halsten/lazygit.lua` |
 | a Nerd Font | `ttf-hack-nerd` or similar — see below |
@@ -52,7 +50,7 @@ Install the lot:
 
 ```sh
 sudo pacman -S --needed neovim git base-devel curl wget unzip \
-  ripgrep fd go rustup python nodejs npm tree-sitter-cli lazygit ttf-hack-nerd \
+  ripgrep fd go rustup nodejs npm tree-sitter-cli lazygit ttf-hack-nerd \
   wl-clipboard
 ```
 
@@ -110,13 +108,9 @@ Two things worth knowing about how the pieces get found:
 
 `rustup update` upgrades the toolchain and all of its components together, rust-analyzer included.
 
-### Python
-
-Present on any Manjaro install, and used only indirectly: mason installs `sqlfmt` from PyPI by building a virtualenv inside its own package directory. Nothing is written to the system Python and no `pip` on `$PATH` is needed — `python3 -m venv` is enough, and it works here out of the box.
-
 ### Node
 
-**Node.js ≥ 22.22.2 and npm** are required for the current TypeScript language server (prefer the current Node LTS). Mason uses npm to install `typescript-language-server`, `eslint-lsp`, `prettier` and `bash-language-server`; Node runs them. Without it, TS/JS buffers have no LSP or Prettier, and shell buffers have no LSP — `shfmt` and `shellcheck` are standalone binaries and are unaffected.
+**Node.js ≥ 22.22.2 and npm** are required for the current TypeScript language server (prefer the current Node LTS). Mason uses npm to install `typescript-language-server`, `eslint-lsp`, `prettier`, `bash-language-server` and `sql-formatter`; Node runs them. Without it, TS/JS buffers have no LSP or Prettier, shell buffers have no LSP, and SQL formatting is unavailable — `shfmt` and `shellcheck` are standalone binaries and are unaffected.
 
 ```sh
 sudo pacman -S --needed nodejs npm
@@ -249,7 +243,7 @@ Declared in `lua/plugins/mason.lua`, installed into `~/.local/share/nvim/mason/b
 | `prettier` | TS/JS/TSX/JSX, CSS/SCSS, HTML, JSON/JSONC and YAML formatter | **node + npm** |
 | `marksman` | markdown LSP: links, references, outline. Does no formatting | — |
 | `rumdl` | markdown formatter — fixes markdownlint rule violations and never reflows paragraphs, which is what `after/ftplugin/markdown.lua` leaves `textwidth` at 0 for |  |
-| `sqlfmt` | SQL formatter, wired into conform | **python3** (mason builds it a venv) |
+| `sql-formatter` | SQL formatter, wired into conform as `sql_formatter`; keeps semicolons at the end of statements | **node + npm** |
 | `taplo` | TOML LSP *and* formatter from one binary — here for `Cargo.toml` | — |
 | `codelldb` | the Rust debug adapter behind nvim-dap | — |
 
@@ -328,10 +322,10 @@ For SolidJS, after installing Node/npm, run `:MasonToolsInstall` and wait for `t
 
 `gd` jumps to definitions, `K` shows hover, `<leader>ar` renames, `<leader>ao` organizes imports, and `<leader>ac` offers code actions / ESLint fixes. Save to format, or use `<leader>af`. From the project directory, `npx eslint src` checks linting and `npx tsc --noEmit -p tsconfig.app.json` checks types (use `tsconfig.json` instead if that is the source config).
 
-`:checkhealth` will always warn about the runtimes this config does not use — luarocks, ruby, gem, composer, php, julia. Those are safe to ignore. Act on missing `node`/`npm` for SolidJS / TS / JS tooling or shell LSP.
+`:checkhealth` will always warn about the runtimes this config does not use — luarocks, ruby, gem, composer, php, julia. Those are safe to ignore. Act on missing `node`/`npm` for SolidJS / TS / JS tooling, shell LSP or SQL formatting.
 
 ## Known gaps on this machine
 
 - `gofumpt` and `golangci-lint` are installed but not wired into anything; conform formats Go with `goimports` alone, on purpose.
-- `sqlfmt` parses SQL rather than just shuffling whitespace, so it refuses a file whose dialect it cannot read — the error surfaces in `:ConformInfo` / `:messages` and the buffer is left untouched rather than mangled. Standard ANSI, Postgres and dbt-flavoured SQL are fine; exotic vendor DDL may not be.
-- Nothing provides SQL completion or diagnostics — `sqlfmt` is a formatter only, and no SQL LSP is enabled. `sqls` would need a live database connection configured per project, which is not worth it here.
+- `sql-formatter` defaults to basic SQL. For dialect-specific syntax, put e.g. `{ "language": "postgresql" }` in `.sql-formatter.json` in the working directory or a parent. Semicolons stay at the end of statements by default (`newlineBeforeSemicolon: false`), unlike the previous `sqlfmt`. Stored procedures and dbt/Jinja templates are not directly supported; parse errors appear in `:ConformInfo` / `:messages` and leave the buffer untouched.
+- Nothing provides SQL completion or diagnostics — `sql-formatter` is a formatter only, and no SQL LSP is enabled. `sqls` would need a live database connection configured per project, which is not worth it here.

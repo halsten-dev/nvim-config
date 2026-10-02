@@ -55,12 +55,9 @@ return {
         "codelldb",
         -- TOML LSP + formatter, single prebuilt binary. Here for Cargo.toml.
         "taplo",
-        -- sql
-        --
-        -- Opinionated SQL formatter (lua/plugins/conform.lua). A pypi package,
-        -- which mason installs into a venv of its own -- the system python3 is
-        -- enough, nothing lands in it.
-        "sqlfmt",
+        -- SQL formatter (lua/plugins/conform.lua). Requires node + npm;
+        -- unlike sqlfmt, keeps semicolons at the end of statements.
+        "sql-formatter",
       },
     },
   },
