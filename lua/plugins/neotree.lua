@@ -49,6 +49,39 @@ local function tree_win()
   end
 end
 
+-- Shared globs keep test decoration and filtering in sync. Rust unit tests
+-- inside src/*.rs cannot be distinguished at the file-explorer level.
+local test_globs = {
+  "*_test.go",
+  "*.test.*",
+  "*.spec.*",
+  "test_*.py",
+  "*_test.py",
+  "test",
+  "tests",
+  "__tests__",
+}
+local test_patterns
+local function get_test_patterns()
+  if not test_patterns then
+    local glob = require("neo-tree.sources.filesystem.lib.globtopattern")
+    test_patterns = vim.tbl_map(glob.globtopattern, test_globs)
+  end
+  return test_patterns
+end
+
+local function is_test(node)
+  if node.type ~= "file" and node.type ~= "directory" then
+    return false
+  end
+  for _, pattern in ipairs(get_test_patterns()) do
+    if node.name:match(pattern) then
+      return true
+    end
+  end
+  return false
+end
+
 return {
   {
     "nvim-neo-tree/neo-tree.nvim",
@@ -93,6 +126,44 @@ return {
     },
     opts = {
       filesystem = {
+        components = {
+          icon = function(config, node, state)
+            local icon = require("neo-tree.sources.common.components").icon(config, node, state)
+            if is_test(node) then
+              icon.text = "󰙨"
+              icon.highlight = "DiagnosticHint"
+            end
+            return icon
+          end,
+          name = function(config, node, state)
+            local name = require("neo-tree.sources.common.components").name(config, node, state)
+            if node:get_depth() == 1 and node.type == "directory" and state.tests_hidden then
+              name.text = name.text .. " [tests hidden]"
+            end
+            return name
+          end,
+        },
+        commands = {
+          toggle_tests = function(state)
+            -- Use never_show so H cannot accidentally undo the test filter.
+            if not state.tests_hidden then
+              state.test_filter_saved = vim.deepcopy(state.filtered_items.never_show_by_pattern or {})
+              local patterns = vim.deepcopy(state.test_filter_saved)
+              vim.list_extend(patterns, get_test_patterns())
+              state.filtered_items.never_show_by_pattern = patterns
+            else
+              state.filtered_items.never_show_by_pattern = state.test_filter_saved
+              state.test_filter_saved = nil
+            end
+            state.tests_hidden = not state.tests_hidden
+            require("neo-tree.sources.filesystem.commands").refresh(state)
+          end,
+        },
+        window = {
+          mappings = {
+            ["T"] = { "toggle_tests", desc = "Toggle test files" },
+          },
+        },
         filtered_items = {
           hide_dotfiles = false,
           hide_gitignored = false,
