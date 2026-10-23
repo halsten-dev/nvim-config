@@ -58,6 +58,21 @@ return {
       -- Same binary as the TOML LSP in lsp/taplo.lua.
       toml = { "taplo" },
     },
+    formatters = {
+      sql_formatter = {
+        -- sql-formatter cannot handle MySQL/MariaDB DELIMITER directives or
+        -- stored procedures. Leave these scripts untouched, including when
+        -- formatting a selection: the whole buffer determines safety.
+        condition = function(_, ctx)
+          for _, line in ipairs(vim.api.nvim_buf_get_lines(ctx.buf, 0, -1, false)) do
+            if line:lower():match("^%s*delimiter%f[%W]") then
+              return false
+            end
+          end
+          return true
+        end,
+      },
+    },
     format_on_save = {
       timeout_ms = 3000,
       lsp_format = "fallback",
